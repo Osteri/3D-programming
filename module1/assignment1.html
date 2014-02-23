@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+<title>Triangle</title>
+
+<style>
+body{ background-color: grey; }
+canvas{ background-color: white; }
+</style>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+attribute vec3 aVertexPosition;
+void main(void) {
+    gl_Position = vec4(aVertexPosition, 1.0);
+}
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+void main(void) {
+    gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+
+<script>
+var gl = null,
+    canvas = null,
+    glProgram = null,
+    fragmentShader = null,
+    vertexShader = null;
+
+var vertexPositionAttribute = null,
+    triangleVerticeBuffer = null;
+
+// 
+function initWebGL() {
+    canvas = document.getElementById("my-canvas");
+
+    try {
+        gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    }
+    catch(e) {
+    }
+
+    if (gl) {
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        initShaders();
+        setupBuffers();
+        drawScene();
+    }
+    else {
+        alert( "No WebGL support." );
+    }
+}
+
+// attach compiled shaders to our program
+function initShaders() {
+    var fs_source = document.getElementById('shader-fs').innerHTML,
+        vs_source = document.getElementById('shader-vs').innerHTML;
+
+    vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
+    fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+
+    glProgram = gl.createProgram();
+
+    gl.attachShader(glProgram, vertexShader);
+    gl.attachShader(glProgram, fragmentShader);
+    gl.linkProgram(glProgram);
+
+    if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+        alert("Failed to initialize shader program.");
+    }
+
+    gl.useProgram(glProgram);
+}
+
+// actual API compilation process
+function makeShader(src, type) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        alert("Error compiling shader: " + gl.getShaderInfoLog(shader));
+    }
+    return shader;
+}
+
+// initialize buffer with our vertex data
+function setupBuffers() {
+    var triangleVertices = [
+        -0.5, 0.5, 0.0,
+        -0.5,-0.5, 0.0,
+         0.5, 0.5, 0.0,
+     ];
+
+    triangleVerticeBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVerticeBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
+}
+
+// draw quad with triangle strip
+function drawScene() {
+    vertexPositionAttribute = gl.getAttribLocation(glProgram, "aVertexPosition");
+    gl.enableVertexAttribArray(vertexPositionAttribute);
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVerticeBuffer);
+    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+</script>
+</head>
+<body onload="initWebGL()">
+    <canvas id="my-canvas" width="400" height="400">
+    This should not show.
+    </canvas>
+</body>
+</html>
