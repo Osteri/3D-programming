@@ -9,15 +9,21 @@ canvas{ background-color: white; }
 </style>
 
 <script id="shader-vs" type="x-shader/x-vertex">
+uniform float radius;
 attribute vec3 aVertexPosition;
+
 void main(void) {
     gl_Position = vec4(aVertexPosition, 1.0);
+    gl_Position.xy *= radius;
+    gl_PointSize = 10.0;
 }
 </script>
 
 <script id="shader-fs" type="x-shader/x-fragment">
+
 void main(void) {
-    gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+   gl_FragColor = vec4(smoothstep(0.0, 800.0, float(gl_FragCoord.x)),   
+	      smoothstep(0.0, 600.0, float(gl_FragCoord.y)), 1.0, 1.0); 
 }
 </script>
 
@@ -30,7 +36,8 @@ var gl = null,
     vertShader = null;
 
 var vertPosAttr = null,
-    iterations = 30,    // precision of a circle
+    iterations = 32,    // vertex count in a circle
+    radius = 0.5,
     vertBuffer = null;
 
 // init 
@@ -42,9 +49,7 @@ function initWebGL() {
     }
     catch(e) {
     }
-
     if (gl) {
-
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -92,44 +97,63 @@ function makeShader(src, type) {
 
 // initialize buffer with our vertex data
 function setupBuffers() {
-    
     var verts = new Array(3 * iterations);
     var indices = verts.length / 3;
     var sector = 360 / indices;
     
     for (var i = 0; i < indices; i++) {
-       verts[i*3]      = Math.cos( toRadians(sector * i) ); // x
-       verts[i*3 + 1]  = Math.sin( toRadians(sector * i) ); // y
-       verts[i*3 + 2]  = 0;                                 // z
+       verts[i*3]      = Math.cos( deg2rad(sector * i) ); // x
+       verts[i*3 + 1]  = Math.sin( deg2rad(sector * i) ); // y
+       verts[i*3 + 2]  = 0;                               // z
     }
 
     vertBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW); //
 }
 
-function rad2Deg(angle) {
+function rad2deg(angle) {
     return angle * (180 / Math.PI)
 }
 
-function toRadians (angle) {
+function deg2rad (angle) {
   return angle * (Math.PI / 180);
 }
 
 // draw primitives 
 function drawScene() {
+   var buttons = document.getElementsByName('selector');
+   var l = buttons.length;
+   var checked;
+
+   for (var i = 0, l; i < length; i++) {
+        if (buttons[i].checked) {
+            checked = buttons[i].value;
+            break;
+        }
+   }
+
+    glProgram.radius = gl.getUniformLocation(glProgram, "radius");
+    gl.uniform1f(glProgram.radius, radius);
+
     vertPosAttr = gl.getAttribLocation(glProgram, "aVertexPosition");
     gl.enableVertexAttribArray(vertPosAttr);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
+    
     gl.vertexAttribPointer(vertPosAttr, 3, gl.FLOAT, false, 0, 0);
-    gl.drawArrays(gl.LINE_LOOP, 0, iterations);
+    gl.drawArrays(checked, 0, iterations); // POINTS, LINE_LOOP
 }
-
 </script>
 </head>
+
 <body onload="initWebGL()">
-    <canvas id="my-canvas" width="800" height="800">
+<form id="myForm">
+    <input type="radio" name="selector" value="gl.POINTS" >Points
+    <input type="radio" name="selector" value="gl.LINE_LOOP" checked="true">Line loop
+    <input type="radio" name="selector" value="gl.TRIANGLE_FAN">Polygons
+</form>
+    <canvas id="my-canvas" width="600" height="600">
     This should not show.
     </canvas>
+    <script> document.write(values.length); </script>
 </body>
 </html>
