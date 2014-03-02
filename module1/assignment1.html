@@ -101,7 +101,7 @@ function setupBuffers() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
 }
 
-// draw quad with triangle strip
+// draw triangle with triangle strip
 function drawScene() {
     vertexPositionAttribute = gl.getAttribLocation(glProgram, "aVertexPosition");
     gl.enableVertexAttribArray(vertexPositionAttribute);
