@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+<title>Primitives</title>
+
+<style>
+body{ background-color: grey; }
+canvas{ background-color: white; }
+</style>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+attribute vec3 aVertexPosition;
+void main(void) {
+    gl_Position = vec4(aVertexPosition, 1.0);
+}
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+void main(void) {
+    gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+
+<script>
+// global vars 
+var gl = null,
+    canvas = null,
+    glProgram = null,
+    fragShader = null,
+    vertShader = null;
+
+var vertPosAttr = null,
+    iterations = 30,    // precision of a circle
+    vertBuffer = null;
+
+// init 
+function initWebGL() {
+    canvas = document.getElementById("my-canvas");
+
+    try {
+        gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    }
+    catch(e) {
+    }
+
+    if (gl) {
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        initShaders();
+        setupBuffers();
+        drawScene();
+    }
+    else {
+        alert( "No WebGL support." );
+    }
+}
+
+// attach compiled shaders to our program
+function initShaders() {
+    var fs_source = document.getElementById('shader-fs').innerHTML,
+        vs_source = document.getElementById('shader-vs').innerHTML;
+
+    vertShader = makeShader(vs_source, gl.VERTEX_SHADER);
+    fragShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+
+    glProgram = gl.createProgram();
+
+    gl.attachShader(glProgram, vertShader);
+    gl.attachShader(glProgram, fragShader);
+    gl.linkProgram(glProgram);
+
+    if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+        alert("Failed to initialize shader program.");
+    }
+
+    gl.useProgram(glProgram);
+}
+
+// actual API compilation process
+function makeShader(src, type) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        alert("Error compiling shader: " + gl.getShaderInfoLog(shader));
+    }
+    return shader;
+}
+
+// initialize buffer with our vertex data
+function setupBuffers() {
+    
+    var verts = new Array(3 * iterations);
+    var indices = verts.length / 3;
+    var sector = 360 / indices;
+    
+    for (var i = 0; i < indices; i++) {
+       verts[i*3]      = Math.cos( toRadians(sector * i) ); // x
+       verts[i*3 + 1]  = Math.sin( toRadians(sector * i) ); // y
+       verts[i*3 + 2]  = 0;                                 // z
+    }
+
+    vertBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+}
+
+function rad2Deg(angle) {
+    return angle * (180 / Math.PI)
+}
+
+function toRadians (angle) {
+  return angle * (Math.PI / 180);
+}
+
+// draw primitives 
+function drawScene() {
+    vertPosAttr = gl.getAttribLocation(glProgram, "aVertexPosition");
+    gl.enableVertexAttribArray(vertPosAttr);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
+    gl.vertexAttribPointer(vertPosAttr, 3, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.LINE_LOOP, 0, iterations);
+}
+
+</script>
+</head>
+<body onload="initWebGL()">
+    <canvas id="my-canvas" width="800" height="800">
+    This should not show.
+    </canvas>
+</body>
+</html>
