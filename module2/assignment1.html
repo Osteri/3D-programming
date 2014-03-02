@@ -28,7 +28,10 @@ void main(void) {
 </script>
 
 <script>
-// global vars 
+// global vars
+
+var mode;
+
 var gl = null,
     canvas = null,
     glProgram = null,
@@ -36,7 +39,7 @@ var gl = null,
     vertShader = null;
 
 var vertPosAttr = null,
-    iterations = 32,    // vertex count in a circle
+    iterations = 16,    // vertex count in a circle
     radius = 0.5,
     vertBuffer = null;
 
@@ -122,17 +125,6 @@ function deg2rad (angle) {
 
 // draw primitives 
 function drawScene() {
-   var buttons = document.getElementsByName('selector');
-   var l = buttons.length;
-   var checked;
-
-   for (var i = 0, l; i < length; i++) {
-        if (buttons[i].checked) {
-            checked = buttons[i].value;
-            break;
-        }
-   }
-
     glProgram.radius = gl.getUniformLocation(glProgram, "radius");
     gl.uniform1f(glProgram.radius, radius);
 
@@ -140,16 +132,32 @@ function drawScene() {
     gl.enableVertexAttribArray(vertPosAttr);
     
     gl.vertexAttribPointer(vertPosAttr, 3, gl.FLOAT, false, 0, 0);
-    gl.drawArrays(checked, 0, iterations); // POINTS, LINE_LOOP
+    //gl.drawArrays(gl.LINE_LOOP, 0, iterations); // POINTS, LINE_LOOP
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, iterations); // POINTS, LINE_LOOP
+    //gl.drawArrays(gl.POINTS, 0, iterations); // POINTS, LINE_LOOP
 }
 </script>
+
+<script>
+$(function(){
+   $("#myForm").each( function(i){
+      $(this).on('change', function(){
+         if($(this).is(':checked')){
+            mode = $(this).val();
+            drawScene();
+          }
+      });
+   });
+})
+</script>
+
 </head>
 
 <body onload="initWebGL()">
 <form id="myForm">
-    <input type="radio" name="selector" value="gl.POINTS" >Points
-    <input type="radio" name="selector" value="gl.LINE_LOOP" checked="true">Line loop
-    <input type="radio" name="selector" value="gl.TRIANGLE_FAN">Polygons
+    <input type="radio" name="selector" value="LINE_LOOP">LINE_LOOP
+    <input type="radio" name="selector" value="TRIANGLE_FAN" checked="true">TRIANGLE_FAN
+    <input type="radio" name="selector" value="POINTS">POINTS
 </form>
     <canvas id="my-canvas" width="600" height="600">
     This should not show.
