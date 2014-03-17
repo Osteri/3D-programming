@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+<head>
+<title>cubemap</title>
+
+<script src="../lib/jquery-1.9.1.min.js"></script>
+
+<style>
+body{ background-color: grey; }
+canvas{ background-color: white; }
+</style>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+attribute vec3 aVertexPosition;
+void main(void) {
+    gl_Position = vec4(aVertexPosition, 1.0);
+}
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+void main(void) {
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script>
+var gl = null,
+    canvas = null,
+    glProgram = null,
+    fragmentShader = null,
+    vertexShader = null;
+
+var vertexPositionAttribute = null,
+    triangleStripVerticeBuffer = null;
+
+// 
+function initWebGL() {
+    canvas = document.getElementById("my-canvas");
+
+    try {
+        gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    }
+    catch(e) {
+    }
+
+    if (gl) {
+
+        gl.clearColor(0.0, 0.5, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        var cubemap = loadCubeMap();
+
+        initShaders();
+        setupBuffers();
+        drawScene();
+    }
+    else {
+        alert( "No WebGL support." );
+    }
+}
+
+// attach compiled shaders to our program
+function initShaders() {
+    var fs_source = document.getElementById('shader-fs').innerHTML,
+        vs_source = document.getElementById('shader-vs').innerHTML;
+
+    vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
+    fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+
+    glProgram = gl.createProgram();
+
+    gl.attachShader(glProgram, vertexShader);
+    gl.attachShader(glProgram, fragmentShader);
+    gl.linkProgram(glProgram);
+
+    if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+        alert("Failed to initialize shader program.");
+    }
+
+    gl.useProgram(glProgram);
+}
+
+// actual API compilation process
+function makeShader(src, type) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        alert("Error compiling shader: " + gl.getShaderInfoLog(shader));
+    }
+    return shader;
+}
+
+// initialize buffer with our vertex data
+function setupBuffers() {
+    var triangleStripVertices = [
+        -0.5, 0.5, 0.0,
+        -0.5,-0.5, 0.0,
+         0.5, 0.5, 0.0,
+         0.5,-0.5, 0.0
+     ];
+
+    triangleStripVerticeBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleStripVerticeBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleStripVertices), gl.STATIC_DRAW);
+}
+
+function loadCubeMap(base, suffix) {
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    var faces = [["posx.jpg", gl.TEXTURE_CUBE_MAP_POSITIVE_X],
+                 ["negx.jpg", gl.TEXTURE_CUBE_MAP_NEGATIVE_X],
+                 ["posy.jpg", gl.TEXTURE_CUBE_MAP_POSITIVE_Y],
+                 ["negy.jpg", gl.TEXTURE_CUBE_MAP_NEGATIVE_Y],
+                 ["posz.jpg", gl.TEXTURE_CUBE_MAP_POSITIVE_Z],
+                 ["negz.jpg", gl.TEXTURE_CUBE_MAP_NEGATIVE_Z]];
+    
+    for (var i = 0; i < faces.length; i++) {
+        var face = faces[i][1];
+        var image = new Image();
+        
+        image.onload = function(texture, face, image) {
+            return function() {
+                gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+                gl.texImage2D(face, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            }
+        } (texture, face, image);
+        image.src = faces[i][0];
+    }
+    
+    return texture;
+}
+
+// draw quad with triangle strip
+function drawScene() {
+    vertexPositionAttribute = gl.getAttribLocation(glProgram, "aVertexPosition");
+    gl.enableVertexAttribArray(vertexPositionAttribute);
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleStripVerticeBuffer);
+    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+</script>
+</head>
+<body onload="initWebGL()">
+    <canvas id="my-canvas" width="400" height="400">
+    This should not show.
+    </canvas>
+</body>
+</html>

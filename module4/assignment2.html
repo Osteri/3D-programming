@@ -1,0 +1,175 @@
+<html>
+	<head>
+		<title>arm</title>
+		<style>canvas { width: 100%; height: 100% }</style>
+	</head>
+	<body>
+		<script src="../lib/three.js"></script>
+        <script src="../lib/jquery-1.9.1.min.js"></script>
+		<script>
+
+            var camObject = null;
+            var keysPressed = [];
+
+            var mouse = {
+                down: false,
+                prevY: 0,
+                prevX: 0
+            }
+            
+            var camera, scene, renderer;
+            var arm, shoulderMesh, upperArmMesh, elbowMesh, lowerMesh, handMesh, 
+                fingersMesh, fingersMesh2, fingersMesh3, thumbMesh, jointDistance = 5;
+
+            time = new THREE.Clock();
+
+            init();
+            animate();
+
+            function init() {
+                    renderer = new THREE.WebGLRenderer();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    document.body.appendChild(renderer.domElement);
+
+                    camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+                    camObject = new THREE.Object3D();
+
+                    arm = new THREE.Object3D();
+
+                    scene = new THREE.Scene();
+
+                    // camera will be the the child of camObject
+                    camObject.add(camera);
+                    scene.add(camObject);
+                    
+                    camObject.position.z = 30;
+                    //camObject.position.x = 12.5;
+
+                    // meshes
+                    shoulderMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 10), new THREE.MeshNormalMaterial() );
+                    upperArmMesh = new THREE.Mesh(new THREE.CubeGeometry(jointDistance, .7, .7), new THREE.MeshNormalMaterial() );
+                    elbowMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 10), new THREE.MeshNormalMaterial() );
+                    lowerMesh = new THREE.Mesh(new THREE.CubeGeometry(jointDistance, .7, .7), new THREE.MeshNormalMaterial() );
+                    handMesh = new THREE.Mesh(new THREE.CubeGeometry(2, 1.2, 2), new THREE.MeshNormalMaterial() );
+                    fingersMesh = new THREE.Mesh(new THREE.CubeGeometry(2, .5, .5), new THREE.MeshNormalMaterial() );
+                    fingersMesh2 = new THREE.Mesh(new THREE.CubeGeometry(2, .5, .5), new THREE.MeshNormalMaterial() );
+                    fingersMesh3 = new THREE.Mesh(new THREE.CubeGeometry(2, .5, .5), new THREE.MeshNormalMaterial() );
+                    thumbMesh = new THREE.Mesh(new THREE.CubeGeometry(.5, .5, 2), new THREE.MeshNormalMaterial() );
+            
+                    // positions x
+                    shoulderMesh.position.x = 0;
+                    upperArmMesh.position.x += 2;
+                    elbowMesh.position.x = upperArmMesh.position.x;
+                    lowerMesh.position.x = elbowMesh.position.x;
+                    handMesh.position.x = lowerMesh.position.x;
+                    fingersMesh.position.x = handMesh.position.x -.5;
+                    fingersMesh2.position.x = handMesh.position.x -.5;                
+                    fingersMesh3.position.x = handMesh.position.x-.5;
+                    thumbMesh.position.x = handMesh.position.x - 2;
+                    
+                    fingersMesh.position.z += 0.7;
+                    fingersMesh2.position.z += 0;
+                    fingersMesh3.position.z += -0.7;
+                    thumbMesh.position.z += 1;    
+
+                    // rotate whole arm so that it points camera
+                    shoulderMesh.rotation.z = Math.PI / 2;
+                    shoulderMesh.rotation.y = Math.PI / 3;
+
+                    // relations between 3D objects
+                    arm.add(shoulderMesh);
+                    shoulderMesh.add(upperArmMesh);
+                    upperArmMesh.add(elbowMesh);
+                    elbowMesh.add(lowerMesh);
+                    lowerMesh.add(handMesh);
+                    handMesh.add(fingersMesh);
+                    handMesh.add(fingersMesh2);
+                    handMesh.add(fingersMesh3);
+                    handMesh.add(thumbMesh);
+
+                    scene.add(arm);
+                    setupInputs();
+            }
+
+            function setupInputs () {
+                    // Setup simple input handling with mouse
+                    document.onmousedown = function(ev){
+                    mouse.down = true;
+                    mouse.prevY = ev.pageY;
+                    mouse.prevX = ev.pageX;
+                    }
+                    
+                    document.onmouseup = function(ev){
+                    mouse.down = false;
+                    }
+
+                    document.onmousemove = function(ev){
+                        if ( mouse.down ) {
+
+                            var rot = (ev.pageY - mouse.prevY) * 0.01;
+                            var rotY = (ev.pageX - mouse.prevX) * 0.01;
+                            camObject.rotation.y -= rotY;
+                            camera.rotation.x -= rot;
+                            mouse.prevY = ev.pageY;
+                            mouse.prevX = ev.pageX;
+                        }
+                    }
+
+                    // setup input handling with keypresses
+                    document.onkeydown = function(event) {
+                    keysPressed[event.keyCode] = true;
+                    }
+                    
+                    document.onkeyup = function(event) {
+                    keysPressed[event.keyCode] = false;
+                    }
+            }
+
+            function animate() {
+                    requestAnimationFrame(animate);
+                    renderer.render(scene, camera);
+
+                    if ( keysPressed["W".charCodeAt(0)] == true ){
+                        var dir = new THREE.Vector3(0,0,-1);
+                        var dirW = dir.applyMatrix4(camObject.matrixRotationWorld);
+                        camObject.translate(0.1, dirW);
+                    }
+
+                    if ( keysPressed["S".charCodeAt(0)] == true ){
+                        var dir = new THREE.Vector3(0,0,-1);
+                        var dirW = dir.applyMatrix4(camObject.matrixRotationWorld);
+                        camObject.translate(-0.1, dirW);
+                    }
+                    if ( keysPressed["A".charCodeAt(0)] == true ){
+                        var dir = new THREE.Vector3(1,0,0);
+                        var dirW = dir.applyMatrix4(camObject.matrixRotationWorld);
+                        camObject.translate(-0.1, dirW);
+                    
+                    }
+                    if ( keysPressed["D".charCodeAt(0)] == true ){
+                        var dir = new THREE.Vector3(1,0,0);
+                        var dirW = dir.applyMatrix4(camObject.matrixRotationWorld);
+                        camObject.translate(0.1, dirW);
+                    }
+
+                    //elbowMesh.rotation.x += 0.1;
+                    shoulderMesh.rotation.y = Math.sin(time.getElapsedTime()) * 0.8;
+                    shoulderMesh.rotation.x = Math.sin(time.getElapsedTime()) * 0.8;
+
+                    elbowMesh.rotation.y = Math.sin(time.getElapsedTime());
+                    elbowMesh.rotation.x = Math.sin(time.getElapsedTime());
+
+                    fingersMesh.rotation.y = Math.sin(time.getElapsedTime()) * 0.2;
+                    fingersMesh.rotation.x = Math.sin(time.getElapsedTime()) * 0.2;
+
+                    fingersMesh2.rotation.y = Math.sin(time.getElapsedTime()) * 0.2;
+                    fingersMesh2.rotation.x = Math.sin(time.getElapsedTime()) * 0.2;
+
+                    fingersMesh3.rotation.y = Math.sin(time.getElapsedTime()) * 0.4;
+                    fingersMesh3.rotation.x = Math.sin(time.getElapsedTime()) * 0.4;
+
+            }
+
+		</script>
+	</body>
+</html>
